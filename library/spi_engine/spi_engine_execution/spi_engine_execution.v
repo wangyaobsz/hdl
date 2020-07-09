@@ -61,7 +61,7 @@ module spi_engine_execution #(
 
   input sdi_data_ready,
   output reg sdi_data_valid,
-  output [(NUM_OF_SDI * DATA_WIDTH-1):0] sdi_data,
+  output [(NUM_OF_SDI * DATA_WIDTH)-1:0] sdi_data,
 
   input sync_ready,
   output reg sync_valid,
@@ -140,8 +140,6 @@ reg sdo_enabled = 1'b0;
 reg sdi_enabled = 1'b0;
 
 reg [(DATA_WIDTH-1):0] data_sdo_shift = 'h0;
-
-reg [SDI_DELAY+1:0] trigger_rx_d = {(SDI_DELAY+1){1'b0}};
 
 wire [1:0] inst = cmd[13:12];
 wire [1:0] inst_d1 = cmd_d1[13:12];
@@ -396,17 +394,30 @@ assign sdo_int_s = data_sdo_shift[DATA_WIDTH-1];
 // be set to 0, to reduce the core clock's speed, this delay will mean that SDI will
 // be latched at one of the next consecutive SCLK edge.
 
-always @(posedge clk) begin
-  trigger_rx_d[0] <= trigger_rx;
-  trigger_rx_d[SDI_DELAY+1:1] <= trigger_rx_d[SDI_DELAY:0];
-end
+generate
+if (SDI_DELAY == 0) begin : g_no_latch_delay_on_sdi
 
-assign trigger_rx_s = trigger_rx_d[SDI_DELAY+1];
+  assign trigger_rx_s = trigger_rx;
+
+end else begin : g_latch_delay_on_sdi
+
+  reg [SDI_DELAY:0] trigger_rx_d = {(SDI_DELAY+1){1'b0}};
+
+  always @(posedge clk) begin
+    trigger_rx_d[0] <= trigger_rx;
+    trigger_rx_d[SDI_DELAY:1] <= trigger_rx_d[SDI_DELAY-1:0];
+  end
+
+  assign trigger_rx_s = trigger_rx_d[SDI_DELAY];
+
+end
+endgenerate
 
 // Load the serial data into SDI shift register(s), then link it to the output
 // register of the module
 
 wire cs_active_s = (inst_d1 == CMD_CHIPSELECT) & ~(&cmd_d1[NUM_OF_CS-1:0]);
+
 genvar i;
 generate
   for (i=0; i<NUM_OF_SDI; i=i+1) begin: g_sdi_shift_reg
@@ -415,13 +426,15 @@ generate
 
     always @(posedge clk) begin
       if (cs_active_s) begin
-        data_sdi_shift <= {DATA_WIDTH{1'b0}};
-      end else if (trigger_rx_s == 1'b1) begin
-        data_sdi_shift <= {data_sdi_shift[DATA_WIDTH-2:0], sdi[i]};
+        data_sdi_shift <= 0;
+      end else begin
+        if (trigger_rx_s == 1'b1) begin
+          data_sdi_shift <= {data_sdi_shift, sdi[i]};
+        end
       end
     end
 
-    assign sdi_data[((i+1)*DATA_WIDTH)-1:i*DATA_WIDTH] = data_sdi_shift;
+    assign sdi_data[i*DATA_WIDTH+:DATA_WIDTH] = data_sdi_shift;
 
   end
 endgenerate
