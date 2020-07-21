@@ -84,3 +84,10 @@ ad_cpu_interconnect 0x46000000 axi_fmcomms8_gpio
 # interconnect (mem/dac)
 
 ad_cpu_interrupt ps-4 mb-4 axi_fmcomms8_gpio/ip2intc_irpt
+
+
+#debug ports
+create_bd_port -dir O rx_link_pll_reset_n
+connect_bd_net [get_bd_ports rx_link_pll_reset_n] [get_bd_pins axi_adrv9009_som_rx_xcvr/up_pll_rst]
+create_bd_port -dir O up_clk
+connect_bd_net [get_bd_ports up_clk] [get_bd_pins sys_ps8/pl_clk0]

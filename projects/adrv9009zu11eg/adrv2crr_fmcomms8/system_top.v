@@ -548,33 +548,38 @@ module system_top (
               pb_gpio_1,          // 1
               pb_gpio_0}));       // 0
 
+wire ref_clk_a_div2;
+wire ref_clk_b_div2;
+wire ref_clk_c_div2;
+wire ref_clk_d_div2;
+
   IBUFDS_GTE4 i_ibufds_ref_clk_1 (
     .CEB (1'd0),
     .I (ref_clk_a_p),
     .IB (ref_clk_a_n),
     .O (ref_clk_a),
-    .ODIV2 ());
+    .ODIV2 (ref_clk_a_div2));
 
   IBUFDS_GTE4 i_ibufds_ref_clk_2 (
     .CEB (1'd0),
     .I (ref_clk_b_p),
     .IB (ref_clk_b_n),
     .O (ref_clk_b),
-    .ODIV2 ());
+    .ODIV2 (ref_clk_b_div2));
 
   IBUFDS_GTE4 i_ibufds_ref_clk_3 (
     .CEB (1'd0),
     .I (ref_clk_c_p),
     .IB (ref_clk_c_n),
     .O (ref_clk_c),
-    .ODIV2 ());
+    .ODIV2 (ref_clk_c_div2));
 
   IBUFDS_GTE4 i_ibufds_ref_clk_4 (
     .CEB (1'd0),
     .I (ref_clk_d_p),
     .IB (ref_clk_d_n),
     .O (ref_clk_d),
-    .ODIV2 ());
+    .ODIV2 (ref_clk_d_div2));
 
   IBUFDS i_ibufds_sysref_1 (
     .I (sysref_a_p),
@@ -799,8 +804,50 @@ module system_top (
     .spi1_csn (fmcomms8_spi_csn),
     .spi1_miso(fmcomms8_spi1_miso),
     .spi1_mosi(fmcomms8_spi_mosi),
-    .spi1_sclk(spi_fmc_clk)
+    .spi1_sclk(spi_fmc_clk),
+    // debug ports
+    .up_clk (up_clk),
+    .rx_link_pll_reset (rx_link_pll_reset)
   );
+  
+  BUFG_GT i_ref_clk_b_div2 (
+    .I (ref_clk_b_div2),
+    .O (ref_clk_b_div2_GT)
+  );  
+  BUFG_GT i_ref_clk_d_div2 (
+    .I (ref_clk_d_div2),
+    .O (ref_clk_d_div2_GT)
+  );
+
+reg [31:0] ref_clk_b_cnt;
+reg [31:0] ref_clk_d_cnt;
+
+always @(posedge ref_clk_b_div2_GT or posedge rx_link_pll_reset)
+    if (rx_link_pll_reset)
+        ref_clk_b_cnt <= 'h0;
+    else 
+        ref_clk_b_cnt <= ref_clk_b_cnt+1;
+
+always @(posedge ref_clk_d_div2_GT or posedge rx_link_pll_reset)
+    if (rx_link_pll_reset)
+        ref_clk_d_cnt <= 'h0;
+    else 
+        ref_clk_d_cnt <= ref_clk_d_cnt+1;
+
+(* mark_debug = "true" *) wire [31:0] up_ref_clk_b_cnt;
+(* mark_debug = "true" *) wire [31:0] up_ref_clk_d_cnt;
+
+ sync_data #(
+  .NUM_OF_BITS(64)
+) i_sync_ref_clk_cnt (
+  .in_clk(ref_clk_b_div2_GT),
+  .in_data({ref_clk_d_cnt,ref_clk_b_cnt}),
+  .out_clk(up_clk),
+  .out_data({up_ref_clk_d_cnt,up_ref_clk_b_cnt})
+);
+
+
+
 
 endmodule
 

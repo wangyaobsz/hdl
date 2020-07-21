@@ -133,7 +133,7 @@ module util_adxcvr_xch #(
   output          up_rx_pll_locked,
   input           up_rx_rst,
   input           up_rx_user_ready,
-  output          up_rx_rst_done,
+  (* mark_debug = "true" *) output          up_rx_rst_done,
   input           up_rx_lpm_dfe_n,
   input   [ 2:0]  up_rx_rate,
   input   [ 1:0]  up_rx_sys_clk_sel,
@@ -205,7 +205,7 @@ module util_adxcvr_xch #(
   wire    [11:0]  rx_disperr_open_s;
   wire    [ 3:0]  rx_notintable_open_s;
   wire    [95:0]  rx_data_open_s;
-  wire            cpll_locked_s;
+  (* mark_debug = "true" *) wire            cpll_locked_s;
 
   // pll
 

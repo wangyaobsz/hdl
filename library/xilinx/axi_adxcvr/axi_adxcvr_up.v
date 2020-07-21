@@ -70,8 +70,8 @@ module axi_adxcvr_up #(
   // channel
 
   input               up_ch_pll_locked,
-  output              up_ch_rst,
-  output              up_ch_user_ready,
+  (* mark_debug = "true" *) output              up_ch_rst,
+  (* mark_debug = "true" *) output              up_ch_user_ready,
   input               up_ch_rst_done,
   output              up_ch_lpm_dfe_n,
   output     [ 2:0]   up_ch_rate,
@@ -107,8 +107,8 @@ module axi_adxcvr_up #(
 
   // status
 
-  output              up_status,
-  output              up_pll_rst,
+  (* mark_debug = "true" *) output              up_status,
+  (* mark_debug = "true" *) output              up_pll_rst,
 
   // bus interface
 
